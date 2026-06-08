@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realm of Regions</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f5c542;
+    --gold-dark: #c9922a;
+    --forest: #2d6a2d;
+    --forest-light: #4caf50;
+    --mountain: #5a6a8a;
+    --mountain-light: #90a4d4;
+    --lava: #b83200;
+    --lava-light: #ff6b2b;
+    --snow: #5ecfef;
+    --snow-light: #b8eeff;
+    --bg: #1a1025;
+    --panel: #251838;
+    --panel2: #1e1430;
+    --border: #5a3e8a;
+    --text: #f0e8ff;
+    --text-dim: #9a88bb;
+    --hp: #e74c3c;
+    --mp: #3498db;
+    --xp: #f39c12;
+    --white: #ffffff;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, #2a0a4a 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, #0a1a3a 0%, transparent 50%);
+  }
+
+  h1, h2, .pixel { font-family: 'Press Start 2P', monospace; }
+
+  /* ── TITLE SCREEN ── */
+  #screen-title {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; text-align: center; padding: 24px;
+    background: radial-gradient(ellipse at center, #2a0a4a 0%, #0a0515 100%);
+  }
+  .title-stars {
+    position: fixed; top:0; left:0; right:0; bottom:0; pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, white, transparent),
+      radial-gradient(1px 1px at 30% 60%, white, transparent),
+      radial-gradient(1px 1px at 50% 10%, white, transparent),
+      radial-gradient(1px 1px at 70% 80%, white, transparent),
+      radial-gradient(1px 1px at 85% 35%, white, transparent),
+      radial-gradient(1px 1px at 20% 85%, white, transparent),
+      radial-gradient(1px 1px at 60% 50%, #aaa, transparent),
+      radial-gradient(1px 1px at 90% 15%, white, transparent),
+      radial-gradient(2px 2px at 45% 70%, #ccaaff, transparent);
+    opacity: 0.6;
+  }
+  .title-logo {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(18px, 5vw, 36px);
+    color: var(--gold);
+    text-shadow: 0 0 20px #f5c54288, 4px 4px 0 #7a3000;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  .title-sub {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 2vw, 12px);
+    color: var(--text-dim);
+    margin-bottom: 48px;
+    letter-spacing: 2px;
+  }
+  @keyframes glow {
+    from { text-shadow: 0 0 10px #f5c54255, 4px 4px 0 #7a3000; }
+    to   { text-shadow: 0 0 30px #f5c542bb, 4px 4px 0 #7a3000; }
+  }
+
+  .name-input-wrap { width: 100%; max-width: 380px; margin-bottom: 24px; }
+  .name-input-wrap label {
+    display: block; font-size: 11px; color: var(--gold); margin-bottom: 8px;
+    font-family: 'Press Start 2P', monospace; letter-spacing: 1px;
+  }
+  .name-input-wrap input {
+    width: 100%; padding: 14px 18px; font-size: 18px;
+    font-family: 'Nunito', sans-serif; font-weight: 700;
+    background: var(--panel2); border: 2px solid var(--border);
+    border-radius: var(--radius); color: var(--text); outline: none;
+    transition: border-color 0.2s;
+  }
+  .name-input-wrap input:focus { border-color: var(--gold); }
+
+  .btn {
+    display: inline-block; padding: 14px 32px;
+    font-family: 'Press Start 2P', monospace; font-size: clamp(9px, 2.5vw, 12px);
+    border: none; border-radius: var(--radius); cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-decoration: none;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: #1a1025; box-shadow: 0 4px 0 #7a4a00, 0 6px 20px #f5c54244;
+  }
+  .btn-gold:hover { box-shadow: 0 4px 0 #7a4a00, 0 8px 30px #f5c54266; }
+  .btn-outline {
+    background: transparent; border: 2px solid var(--border); color: var(--text-dim);
+  }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-danger {
+    background: linear-gradient(135deg, #c0392b, #922b21);
+    color: white; box-shadow: 0 4px 0 #6e1608;
+  }
+  .btn-sm { padding: 8px 16px; font-size: 8px; }
+  .btn-full { width: 100%; text-align: center; display: block; }
+
+  /* ── GAME LAYOUT ── */
+  #screen-game { display: none; min-height: 100vh; padding: 12px; max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .game-header {
+    background: var(--panel); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; margin-bottom: 12px;
+  }
+  .player-name-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .player-name-display {
+    font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--gold);
+  }
+  .level-badge {
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+    background: var(--gold); color: #1a1025; padding: 4px 10px; border-radius: 6px;
+  }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .stat-chip {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 4px; text-align: center;
+  }
+  .stat-chip .stat-label { font-size: 8px; color: var(--text-dim); margin-bottom: 2px; font-family: 'Press Start 2P', monospace; }
+  .stat-chip .stat-val { font-size: 14px; font-weight: 900; color: var(--gold); }
+
+  .bars-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .bar-wrap { }
+  .bar-label { font-size: 9px; color: var(--text-dim); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .bar-track { height: 10px; background: #0a0515; border-radius: 5px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+  .bar-hp .bar-fill { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+  .bar-mp .bar-fill { background: linear-gradient(90deg, #1a5799, #3498db); }
+  .bar-xp .bar-fill { background: linear-gradient(90deg, #c07a00, #f39c12); }
+
+  /* Gold display */
+  .gold-row { text-align: right; font-size: 12px; font-weight: 700; color: var(--gold); margin-top: 8px; }
+  .gold-row span { color: var(--text-dim); font-size: 10px; }
+
+  /* Main area */
+  .main-area {
+    background: var(--panel); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    min-height: 200px;
+  }
+  .area-title {
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
+    color: var(--gold); margin-bottom: 16px; text-align: center;
+  }
+
+  /* Region select */
+  .region-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .region-btn {
+    padding: 18px 10px; border-radius: var(--radius); border: 2px solid transparent;
+    cursor: pointer; text-align: center; transition: all 0.2s; position: relative;
+    overflow: hidden;
+  }
+  .region-btn:hover { transform: translateY(-2px); }
+  .region-btn:active { transform: scale(0.97); }
+  .region-btn .r-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+  .region-btn .r-name { font-family: 'Press Start 2P', monospace; font-size: 8px; }
+  .region-btn .r-range { font-size: 10px; margin-top: 4px; opacity: 0.8; }
+
+  .r-forest { background: linear-gradient(135deg, #1a3a1a, #2d6a2d); border-color: #4caf50; color: #b8ffb8; }
+  .r-mountain { background: linear-gradient(135deg, #2a3450, #5a6a8a); border-color: #90a4d4; color: #c8d8ff; }
+  .r-lava { background: linear-gradient(135deg, #4a1000, #b83200); border-color: #ff6b2b; color: #ffccaa; }
+  .r-snow { background: linear-gradient(135deg, #0a2a40, #1a5a80); border-color: #5ecfef; color: #c8f0ff; }
+  .region-btn.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); }
+
+  /* Town */
+  .town-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .town-btn {
+    padding: 16px 10px; border-radius: var(--radius);
+    background: var(--panel2); border: 2px solid var(--border);
+    cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text);
+  }
+  .town-btn:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+  .town-btn .t-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+  .town-btn .t-name { font-family: 'Press Start 2P', monospace; font-size: 8px; }
+
+  /* Shop / Inn */
+  .shop-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; background: var(--panel2); border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .shop-item-info .item-name { font-weight: 900; font-size: 14px; }
+  .shop-item-info .item-desc { font-size: 11px; color: var(--text-dim); }
+  .shop-item-price { font-weight: 700; color: var(--gold); font-size: 13px; white-space: nowrap; margin-left: 12px; }
+
+  /* Battle */
+  .enemy-display {
+    text-align: center; padding: 20px; background: var(--panel2);
+    border-radius: var(--radius); border: 2px solid var(--border); margin-bottom: 16px;
+  }
+  .enemy-sprite { font-size: 56px; display: block; margin-bottom: 6px;
+    animation: float 2s ease-in-out infinite alternate; }
+  @keyframes float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+  .enemy-name { font-family: 'Press Start 2P', monospace; font-size: 10px; margin-bottom: 8px; }
+  .enemy-hp-bar { max-width: 200px; margin: 0 auto; }
+
+  .battle-log {
+    background: #0a0515; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 12px; min-height: 60px; font-size: 13px;
+    color: var(--text); line-height: 1.6; font-style: italic;
+  }
+  .log-line { margin-bottom: 4px; }
+  .log-player { color: #7ec8e3; }
+  .log-enemy { color: #e88; }
+  .log-good { color: #7ec87e; }
+  .log-bad { color: #e88; }
+  .log-gold { color: var(--gold); }
+
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .action-btn {
+    padding: 12px 8px; border-radius: 8px; border: 2px solid var(--border);
+    background: var(--panel2); color: var(--text); cursor: pointer;
+    font-family: 'Press Start 2P', monospace; font-size: 8px; text-align: center;
+    transition: all 0.15s;
+  }
+  .action-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .action-btn .a-icon { font-size: 20px; display: block; margin-bottom: 6px; }
+
+  /* Inventory */
+  .inv-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: var(--panel2); border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .inv-item .item-name { font-weight: 700; }
+  .inv-item .item-qty { font-size: 11px; color: var(--text-dim); }
+
+  /* Message overlay */
+  #msg-overlay {
+    display: none; position: fixed; inset: 0; background: #000000cc;
+    z-index: 100; align-items: center; justify-content: center; padding: 24px;
+  }
+  #msg-overlay.show { display: flex; }
+  .msg-box {
+    background: var(--panel); border: 3px solid var(--gold);
+    border-radius: 16px; padding: 28px 24px; max-width: 360px; width: 100%;
+    text-align: center; box-shadow: 0 0 40px #f5c54244;
+  }
+  .msg-box h2 { font-family: 'Press Start 2P', monospace; font-size: 14px; color: var(--gold); margin-bottom: 16px; }
+  .msg-box p { font-size: 14px; color: var(--text); margin-bottom: 20px; line-height: 1.6; }
+  .msg-buttons { display: flex; gap: 10px; flex-direction: column; }
+
+  /* Level up overlay */
+  .levelup-flash {
+    font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--gold);
+    text-align: center; text-shadow: 0 0 20px var(--gold);
+    animation: flash 0.5s ease-in-out 4;
+  }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.1} }
+
+  /* Nav */
+  .nav-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .nav-btn {
+    flex: 1; min-width: 80px; padding: 10px 8px; text-align: center;
+    background: var(--panel2); border: 2px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-family: 'Press Start 2P', monospace;
+    font-size: 7px; color: var(--text-dim); transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .nav-btn.active { border-color: var(--gold); color: var(--gold); background: #2a1a40; }
+  .nav-btn .n-icon { font-size: 16px; display: block; margin-bottom: 4px; }
+
+  /* Scrollable inner */
+  .scroll-inner { max-height: 55vh; overflow-y: auto; padding-right: 4px; }
+  .scroll-inner::-webkit-scrollbar { width: 4px; }
+  .scroll-inner::-webkit-scrollbar-track { background: #0a0515; }
+  .scroll-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .back-link { font-size: 10px; color: var(--text-dim); cursor: pointer; margin-bottom: 12px; display: inline-block; }
+  .back-link:hover { color: var(--gold); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  .region-header {
+    text-align: center; margin-bottom: 16px;
+    padding: 12px; border-radius: 8px; border: 2px solid;
+  }
+  .region-header.forest  { border-color: #4caf50; background: #1a3a1a; color: #b8ffb8; }
+  .region-header.mountain { border-color: #90a4d4; background: #2a3450; color: #c8d8ff; }
+  .region-header.lava    { border-color: #ff6b2b; background: #4a1000; color: #ffccaa; }
+  .region-header.snow    { border-color: #5ecfef; background: #0a2a40; color: #c8f0ff; }
+  .region-header .rh-icon { font-size: 32px; }
+  .region-header .rh-name { font-family: 'Press Start 2P', monospace; font-size: 9px; margin-top: 4px; }
+
+  .action-row-single { display: flex; gap: 8px; }
+
+  .game-over-text { color: #e74c3c; font-size: 22px; }
+  .victory-text { color: var(--gold); font-size: 18px; }
+
+  /* Twinkle animation for snow */
+  @keyframes twinkle { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tip { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 8px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- TITLE SCREEN -->
+<div id="screen-title">
+  <div class="title-stars"></div>
+  <div class="title-logo">REALM<br>OF<br>REGIONS</div>
+  <div class="title-sub">by Simon Iacopelli</div>
+  <div class="name-input-wrap">
+    <label>YOUR NAME</label>
+    <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="16" autocomplete="off">
+  </div>
+  <button class="btn btn-gold" onclick="startGame()">⚔️ BEGIN ADVENTURE</button>
+  <div class="tip" style="margin-top:24px;">Designed &amp; created by Simon Iacopelli</div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game">
+
+  <!-- Header: stats -->
+  <div class="game-header">
+    <div class="player-name-row">
+      <div class="player-name-display" id="hdr-name">Hero</div>
+      <div class="level-badge">LV <span id="hdr-level">1</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-chip"><div class="stat-label">ATK</div><div class="stat-val" id="hdr-atk">5</div></div>
+      <div class="stat-chip"><div class="stat-label">MAG</div><div class="stat-val" id="hdr-mag">5</div></div>
+      <div class="stat-chip"><div class="stat-label">PWR</div><div class="stat-val" id="hdr-pwr">5</div></div>
+      <div class="stat-chip"><div class="stat-label">DEF</div><div class="stat-val" id="hdr-def">5</div></div>
+    </div>
+    <div class="bars-row">
+      <div class="bar-wrap bar-hp">
+        <div class="bar-label"><span>HP</span><span><span id="hdr-hp-val">30</span>/<span id="hdr-hp-max">30</span></span></div>
+        <div class="bar-track"><div class="bar-fill" id="hdr-hp-bar" style="width:100%"></div></div>
+      </div>
+      <div class="bar-wrap bar-mp">
+        <div class="bar-label"><span>MP</span><span><span id="hdr-mp-val">20</span>/<span id="hdr-mp-max">20</span></span></div>
+        <div class="bar-track"><div class="bar-fill" id="hdr-mp-bar" style="width:100%"></div></div>
+      </div>
+      <div class="bar-wrap bar-xp">
+        <div class="bar-label"><span>XP</span><span id="hdr-xp-text">0/20</span></div>
+        <div class="bar-track"><div class="bar-fill" id="hdr-xp-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="gold-row"><span>Gold: </span>💰 <span id="hdr-gold">50</span>g</div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav-row">
+    <div class="nav-btn active" id="nav-world" onclick="showView('world')"><span class="n-icon">🗺️</span>WORLD</div>
+    <div class="nav-btn" id="nav-inv"   onclick="showView('inv')"><span class="n-icon">🎒</span>BAG</div>
+    <div class="nav-btn" id="nav-save"  onclick="saveGame()"><span class="n-icon">💾</span>SAVE</div>
+  </div>
+
+  <!-- Main area -->
+  <div class="main-area" id="main-area">
+    <!-- filled dynamically -->
+  </div>
+
+</div>
+
+<!-- Message Overlay -->
+<div id="msg-overlay">
+  <div class="msg-box">
+    <h2 id="msg-title">Notice</h2>
+    <p id="msg-body">...</p>
+    <div class="msg-buttons" id="msg-buttons"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
+
+const LEVELS = [
+  {lvl:1,  xp:0},
+  {lvl:2,  xp:20},
+  {lvl:3,  xp:40},
+  {lvl:4,  xp:80},
+  {lvl:5,  xp:160},
+  {lvl:6,  xp:320},
+  {lvl:7,  xp:640},
+  {lvl:8,  xp:1280},
+  {lvl:9,  xp:2560},
+  {lvl:10, xp:5120},
+  {lvl:11, xp:10240},
+];
+
+const SHOP_ITEMS = [
+  {id:'potion',      name:'Potion',         icon:'🧪', cost:20,  desc:'Recover 10 HP',     type:'heal', val:10},
+  {id:'sword',       name:'Sword',          icon:'⚔️', cost:50,  desc:'+5 Attack',          type:'stat', stat:'atk', val:5},
+  {id:'potion_ult',  name:'Potion Ultimate',icon:'✨', cost:50,  desc:'Recover 30 HP',     type:'heal', val:30},
+  {id:'bagel',       name:'Bagel',          icon:'🥯', cost:80,  desc:'Recover 15 HP',     type:'heal', val:15},
+  {id:'chestplate',  name:'Chest Plate',    icon:'🛡️', cost:120, desc:'+5 Defense',         type:'stat', stat:'def', val:5},
+  {id:'hotdog',      name:'Hotdog',         icon:'🌭', cost:200, desc:'Recover 45 HP',     type:'heal', val:45},
+  {id:'cheddar',     name:'Cheddar',        icon:'🧀', cost:150, desc:'Recover 20 HP',     type:'heal', val:20},
+];
+
+const REGIONS = [
+  {
+    id:'forest', name:'Forest Region', icon:'🌲', cls:'forest',
+    enemies:[
+      {name:'Slime',           icon:'🟢', hp:12, xp:20, gold:[3,8],  atk:3},
+      {name:'Lizard',          icon:'🦎', hp:16, xp:20, gold:[4,9],  atk:4},
+      {name:'Forest Skeleton', icon:'💀', hp:10, xp:20, gold:[3,7],  atk:3},
+      {name:'Rose',            icon:'🌹', hp:20, xp:20, gold:[5,12], atk:5},
+      {name:'Tree Imp',        icon:'🌿', hp:10, xp:20, gold:[3,7],  atk:3},
+      {name:'Flower Petal',    icon:'🌸', hp:18, xp:20, gold:[4,10], atk:4},
+    ],
+    boss:{name:'Forest Wizard', icon:'🧙', hp:36, xp:40, gold:[20,35], atk:8},
+    secretBoss:{name:'Shadow Wizard', icon:'🌑', hp:80, xp:60, gold:[50,80], atk:12, isSecret:true},
+    bossDefeated: false, secretBossDefeated: false,
+  },
+  {
+    id:'mountain', name:'Mountain Region', icon:'⛰️', cls:'mountain',
+    enemies:[
+      {name:'Skeleton',       icon:'💀', hp:26, xp:20, gold:[6,12],  atk:6},
+      {name:'Cloud',          icon:'☁️', hp:24, xp:20, gold:[5,11],  atk:5},
+      {name:'Sky Knight',     icon:'🪖', hp:30, xp:20, gold:[7,14],  atk:7},
+      {name:'Mountain Lion',  icon:'🦁', hp:32, xp:20, gold:[8,15],  atk:7},
+    ],
+    boss:{name:'Mountain Wizard', icon:'🧙', hp:44, xp:45, gold:[30,50], atk:10},
+    secretBoss:{name:'Storm Wizard', icon:'⚡', hp:100, xp:60, gold:[60,90], atk:15, isSecret:true},
+    bossDefeated: false, secretBossDefeated: false,
+  },
+  {
+    id:'lava', name:'Lava Region', icon:'🌋', cls:'lava',
+    enemies:[
+      {name:'Flame',          icon:'🔥', hp:42, xp:20, gold:[8,16],  atk:9},
+      {name:'Obsidian Golem', icon:'🪨', hp:48, xp:20, gold:[10,18], atk:10},
+      {name:'Flame Dragon',   icon:'🐉', hp:55, xp:20, gold:[12,22], atk:12},
+      {name:'Fire Knight',    icon:'🛡️', hp:50, xp:20, gold:[10,20], atk:11},
+    ],
+    boss:{name:'Flare Wizard', icon:'🧙', hp:60, xp:45, gold:[40,65], atk:14},
+    secretBoss:{name:'Inferno Wizard', icon:'🌋', hp:120, xp:60, gold:[70,110], atk:18, isSecret:true},
+    bossDefeated: false, secretBossDefeated: false,
+  },
+  {
+    id:'snow', name:'Frost Region', icon:'❄️', cls:'snow',
+    enemies:[
+      {name:'Ice Slime',        icon:'🧊', hp:64, xp:20, gold:[12,20],  atk:12},
+      {name:'Frozen Skeleton',  icon:'💀', hp:58, xp:20, gold:[11,18],  atk:11},
+      {name:'Igloo',            icon:'🏔️', hp:60, xp:20, gold:[10,17],  atk:10},
+      {name:'Ice Golem',        icon:'🪨', hp:66, xp:20, gold:[13,22],  atk:13},
+      {name:'Ice Dragon',       icon:'🐲', hp:78, xp:20, gold:[15,28],  atk:15},
+    ],
+    boss:{name:'Frost Wizard', icon:'🧙‍♂️', hp:250, xp:45, gold:[80,150], atk:20, isFinal:true},
+    secretBoss:{name:'Void Wizard', icon:'🌀', hp:300, xp:80, gold:[120,200], atk:25, isSecret:true, isFinal:true},
+    bossDefeated: false, secretBossDefeated: false,
+  },
+];
+
+// ══════════════════════════════════════════════
+//  PLAYER STATE
+// ══════════════════════════════════════════════
+
+let player = {
+  name: 'Hero',
+  level: 1,
+  xp: 0,
+  hp: 30, maxHp: 30,
+  mp: 20, maxMp: 20,
+  atk: 5, mag: 5, pwr: 5, def: 5,
+  gold: 50,
+  inventory: [{id:'potion', name:'Potion', icon:'🧪', qty:3, type:'heal', val:10}], // {id, name, icon, qty, type, val, stat}
+  regionsUnlocked: ['forest'],
+  killStreak: {}, // regionId -> count of enemies defeated without dying
+};
+
+let currentView = 'world';
+let battle = null; // active battle state
+let regions = JSON.parse(JSON.stringify(REGIONS)); // deep clone
+
+// ══════════════════════════════════════════════
+//  GAME START / SAVE / LOAD
+// ══════════════════════════════════════════════
+
+function startGame() {
+  const name = document.getElementById('player-name-input').value.trim() || 'Hero';
+  player.name = name;
+  document.getElementById('screen-title').style.display = 'none';
+  document.getElementById('screen-game').style.display = 'block';
+  updateHeader();
+  showView('world');
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem('ror_version', '2');
+    localStorage.setItem('ror_player', JSON.stringify(player));
+    localStorage.setItem('ror_regions', JSON.stringify(regions));
+    showMsg('Game Saved!', 'Your progress has been saved.', [{label:'OK', fn:()=>closeMsg()}]);
+  } catch(e) {
+    showMsg('Save Failed', 'Could not save game data.', [{label:'OK', fn:()=>closeMsg()}]);
+  }
+}
+
+function loadGame() {
+  try {
+    const v = localStorage.getItem('ror_version');
+    if (v !== '2') { localStorage.removeItem('ror_player'); localStorage.removeItem('ror_regions'); return false; }
+    const p = localStorage.getItem('ror_player');
+    const r = localStorage.getItem('ror_regions');
+    if (p) player = JSON.parse(p);
+    if (r) regions = JSON.parse(r);
+    return !!p;
+  } catch(e) { return false; }
+}
+
+// ══════════════════════════════════════════════
+//  HEADER UPDATE
+// ══════════════════════════════════════════════
+
+function updateHeader() {
+  document.getElementById('hdr-name').textContent = player.name;
+  document.getElementById('hdr-level').textContent = player.level;
+  document.getElementById('hdr-atk').textContent = player.atk;
+  document.getElementById('hdr-mag').textContent = player.mag;
+  document.getElementById('hdr-pwr').textContent = player.pwr;
+  document.getElementById('hdr-def').textContent = player.def;
+  document.getElementById('hdr-hp-val').textContent = player.hp;
+  document.getElementById('hdr-hp-max').textContent = player.maxHp;
+  document.getElementById('hdr-mp-val').textContent = player.mp;
+  document.getElementById('hdr-mp-max').textContent = player.maxMp;
+  document.getElementById('hdr-gold').textContent = player.gold;
+
+  const hpPct = Math.max(0, player.hp / player.maxHp * 100);
+  const mpPct = Math.max(0, player.mp / player.maxMp * 100);
+  document.getElementById('hdr-hp-bar').style.width = hpPct + '%';
+  document.getElementById('hdr-mp-bar').style.width = mpPct + '%';
+
+  // XP bar
+  const curLvl = LEVELS.find(l => l.lvl === player.level);
+  const nxtLvl = LEVELS.find(l => l.lvl === player.level + 1);
+  if (nxtLvl) {
+    const pct = (player.xp - curLvl.xp) / (nxtLvl.xp - curLvl.xp) * 100;
+    document.getElementById('hdr-xp-bar').style.width = Math.min(100,pct) + '%';
+    document.getElementById('hdr-xp-text').textContent = player.xp + '/' + nxtLvl.xp;
+  } else {
+    document.getElementById('hdr-xp-bar').style.width = '100%';
+    document.getElementById('hdr-xp-text').textContent = 'MAX';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  VIEWS
+// ══════════════════════════════════════════════
+
+function showView(view) {
+  currentView = view;
+  ['world','inv','save'].forEach(v => {
+    const el = document.getElementById('nav-' + v);
+    if (el) el.classList.toggle('active', v === view);
+  });
+  const area = document.getElementById('main-area');
+  if (view === 'world') renderWorld(area);
+  else if (view === 'inv') renderInventory(area);
+}
+
+// ──── WORLD ────
+function renderWorld(area) {
+  const allBeaten = regions.every(r => r.bossDefeated);
+  if (allBeaten) {
+    area.innerHTML = `
+      <div class="area-title">🏆 VICTORY!</div>
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:12px;">👑</div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);line-height:1.8;">
+          ${player.name} has conquered<br>all four regions!<br><br>The Frost Wizard<br>is defeated!
+        </p>
+      </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="area-title">🗺️ WHERE TO GO?</div>
+    <div style="margin-bottom:12px;">
+      <div class="region-grid" id="region-grid"></div>
+    </div>
+    <hr class="divider">
+    <div class="town-grid">
+      <div class="town-btn" onclick="showShop()"><span class="t-icon">🏪</span><div class="t-name">ITEM STORE</div></div>
+      <div class="town-btn" onclick="showInn()"><span class="t-icon">🏨</span><div class="t-name">INN &amp; REST</div></div>
+    </div>`;
+
+  const grid = document.getElementById('region-grid');
+  regions.forEach((r, i) => {
+    const unlocked = player.regionsUnlocked.includes(r.id);
+    const div = document.createElement('div');
+    div.className = 'region-btn r-' + r.id + (unlocked ? '' : ' locked');
+    div.innerHTML = `<span class="r-icon">${r.icon}</span>
+      <div class="r-name">${r.name}</div>
+      <div class="r-range">${unlocked ? (r.bossDefeated ? '✅ Cleared' : 'Enter') : '🔒 Locked'}</div>`;
+    if (unlocked) div.onclick = () => showRegion(i);
+    grid.appendChild(div);
+  });
+}
+
+// ──── SECRET BOSS BUTTON HELPER ────
+function buildSecretBossBtn(idx) {
+  const r = regions[idx];
+  const streak = player.killStreak[r.id] || 0;
+  const unlocked = streak >= 3;
+  const label = r.secretBossDefeated ? '🔁 Rematch Secret Boss' : (unlocked ? '⚠️ Challenge Secret Boss' : '🔒 Secret Boss (' + streak + '/3 kills)');
+  const style = unlocked
+    ? 'background:linear-gradient(135deg,#2a006a,#6a00cc);color:white;border:2px solid #cc88ff;padding:14px;border-radius:10px;font-family:\'Press Start 2P\',monospace;font-size:9px;cursor:pointer;'
+    : 'background:#1a1025;color:#555;border:2px solid #333;padding:14px;border-radius:10px;font-family:\'Press Start 2P\',monospace;font-size:9px;cursor:not-allowed;';
+  const onclick = unlocked ? ' onclick="startSecretBoss(' + idx + ')"' : '';
+  const disabled = unlocked ? '' : ' disabled';
+  return '<button class="btn btn-full" style="' + style + '"' + onclick + disabled + '>' + label + '</button>';
+}
+
+// ──── REGION ────
+function showRegion(idx) {
+  const r = regions[idx];
+  const area = document.getElementById('main-area');
+  area.innerHTML = `
+    <span class="back-link" onclick="showView('world')">← Back to World</span>
+    <div class="region-header ${r.cls}">
+      <div class="rh-icon">${r.icon}</div>
+      <div class="rh-name">${r.name.toUpperCase()}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-gold btn-full" onclick="startBattle(${idx}, false)">⚔️ Fight Enemy</button>
+      <button class="btn btn-full" style="background:linear-gradient(135deg,#7a2200,#c0390b);color:white;padding:14px;border:2px solid #ff6b2b;border-radius:10px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;"
+        onclick="startBattle(${idx}, true)">
+        👑 ${r.bossDefeated ? '🔁 Rematch Boss' : 'Challenge Boss'}
+      </button>
+      ${buildSecretBossBtn(idx)}
+    </div>`;
+}
+
+// ──── SHOP ────
+function showShop() {
+  const area = document.getElementById('main-area');
+  let html = `<span class="back-link" onclick="showView('world')">← Back to World</span>
+    <div class="area-title">🏪 ITEM STORE</div>
+    <div>`;
+  SHOP_ITEMS.forEach(item => {
+    html += `<div class="shop-item">
+      <div class="shop-item-info">
+        <div class="item-name">${item.icon} ${item.name}</div>
+        <div class="item-desc">${item.desc}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="shop-item-price">${item.cost}g</div>
+        <button class="btn btn-gold btn-sm" onclick="buyItem('${item.id}')">BUY</button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function buyItem(id) {
+  const item = SHOP_ITEMS.find(i => i.id === id);
+  if (!item) return;
+  if (player.gold < item.cost) { showMsg('Not Enough Gold!', 'You need ' + item.cost + 'g to buy ' + item.name + '.', [{label:'OK',fn:()=>closeMsg()}]); return; }
+  player.gold -= item.cost;
+  if (item.type === 'stat') {
+    player[item.stat] += item.val;
+    showMsg('Purchased!', item.icon + ' ' + item.name + ' equipped! ' + item.stat.toUpperCase() + ' +' + item.val, [{label:'OK',fn:()=>closeMsg()}]);
+  } else {
+    addToInventory(item);
+    showMsg('Purchased!', item.icon + ' ' + item.name + ' added to your bag!', [{label:'OK',fn:()=>closeMsg()}]);
+  }
+  updateHeader();
+}
+
+function addToInventory(item) {
+  const existing = player.inventory.find(i => i.id === item.id);
+  if (existing) existing.qty++;
+  else player.inventory.push({id:item.id, name:item.name, icon:item.icon, qty:1, type:item.type, val:item.val});
+}
+
+// ──── INN ────
+function showInn() {
+  const area = document.getElementById('main-area');
+  area.innerHTML = `<span class="back-link" onclick="showView('world')">← Back to World</span>
+    <div class="area-title">🏨 INN &amp; REST</div>
+    <div class="shop-item">
+      <div class="shop-item-info">
+        <div class="item-name">🛏️ Rest</div>
+        <div class="item-desc">Fully restore HP and MP</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="shop-item-price">15g</div>
+        <button class="btn btn-gold btn-sm" onclick="restAtInn()">REST</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-outline btn-full" onclick="showView('world')">Leave Inn</button>
+    </div>`;
+}
+
+function restAtInn() {
+  if (player.gold < 15) { showMsg('Not Enough Gold!', 'You need 15g to rest here.', [{label:'OK',fn:()=>closeMsg()}]); return; }
+  player.gold -= 15;
+  player.hp = player.maxHp;
+  player.mp = player.maxMp;
+  updateHeader();
+  showMsg('Well Rested!', 'HP and MP fully restored! Time to adventure!', [{label:'OK',fn:()=>closeMsg()}]);
+}
+
+// ──── INVENTORY ────
+function renderInventory(area) {
+  area.innerHTML = `<div class="area-title">🎒 YOUR BAG</div>`;
+  if (player.inventory.length === 0) {
+    area.innerHTML += `<p style="text-align:center;color:var(--text-dim);margin-top:20px;">Your bag is empty.</p>`;
+    return;
+  }
+  let html = '<div class="scroll-inner">';
+  player.inventory.forEach(item => {
+    html += `<div class="inv-item">
+      <div><span style="font-size:20px;">${item.icon}</span> <span class="item-name">${item.name}</span>
+      <span class="item-qty"> x${item.qty}</span></div>
+      <button class="btn btn-gold btn-sm" onclick="useItem('${item.id}')">USE</button>
+    </div>`;
+  });
+  html += '</div>';
+  area.innerHTML += html;
+}
+
+function useItem(id) {
+  const item = player.inventory.find(i => i.id === id);
+  if (!item) return;
+  if (item.type === 'heal') {
+    const before = player.hp;
+    player.hp = Math.min(player.maxHp, player.hp + item.val);
+    const gained = player.hp - before;
+    item.qty--;
+    if (item.qty <= 0) player.inventory = player.inventory.filter(i => i.id !== id);
+    updateHeader();
+    showMsg('Item Used!', item.icon + ' ' + item.name + ' restored ' + gained + ' HP!', [{label:'OK',fn:()=>{ closeMsg(); renderInventory(document.getElementById('main-area')); }}]);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  BATTLE SYSTEM
+// ══════════════════════════════════════════════
+
+function startSecretBoss(regionIdx) {
+  const r = regions[regionIdx];
+  const enemy = JSON.parse(JSON.stringify(r.secretBoss));
+  enemy.isBoss = true;
+  enemy.isSecret = true;
+  enemy.maxHp = enemy.hp;
+  enemy.regionIdx = regionIdx;
+  battle = { enemy, log: [], turn: 'player', active: true, acted: false };
+  renderBattle();
+}
+
+function startBattle(regionIdx, isBoss) {
+  const r = regions[regionIdx];
+  let enemy;
+  if (isBoss) {
+    enemy = JSON.parse(JSON.stringify(r.boss));
+    enemy.isBoss = true;
+  } else {
+    const pool = r.enemies;
+    const base = JSON.parse(JSON.stringify(pool[Math.floor(Math.random() * pool.length)]));
+    enemy = base;
+    enemy.isBoss = false;
+  }
+  enemy.maxHp = enemy.hp;
+  enemy.regionIdx = regionIdx;
+
+  battle = { enemy, log: [], turn: 'player', active: true, acted: false };
+  renderBattle();
+}
+
+function renderBattle() {
+  const area = document.getElementById('main-area');
+  const e = battle.enemy;
+  const hpPct = Math.max(0, e.hp / e.maxHp * 100);
+
+  let logHtml = battle.log.slice(-4).map(l => `<div class="log-line ${l.cls}">${l.text}</div>`).join('');
+
+  const canMagic = player.mp >= 5;
+  const hasHealItem = player.inventory.some(i => i.type === 'heal' && i.qty > 0);
+
+  area.innerHTML = `
+    <div class="enemy-display">
+      <span class="enemy-sprite">${e.icon}</span>
+      <div class="enemy-name">${e.name}${e.isBoss ? ' 👑' : ''}</div>
+      <div class="enemy-hp-bar">
+        <div class="bar-label"><span>HP</span><span>${e.hp}/${e.maxHp}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${hpPct}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+      </div>
+    </div>
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+      <div class="bar-label" style="margin-bottom:4px;"><span>❤️ ${player.name}</span><span style="font-weight:700;color:${player.hp <= player.maxHp * 0.25 ? '#e74c3c' : 'var(--text)'};">${player.hp} / ${player.maxHp} HP</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,player.hp/player.maxHp*100)}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+    </div>
+    <div class="battle-log">${logHtml || '<span style="color:var(--text-dim)">A wild ' + e.name + ' appears!</span>'}</div>
+    <div class="action-grid">
+      <button class="action-btn" onclick="battleAction('attack')"><span class="a-icon">⚔️</span>ATTACK</button>
+      <button class="action-btn" onclick="battleAction('magic')" ${canMagic?'':'disabled'}><span class="a-icon">✨</span>MAGIC${canMagic?'':' (no MP)'}</button>
+      <button class="action-btn" onclick="battleAction('defend')"><span class="a-icon">🛡️</span>DEFEND</button>
+      <button class="action-btn" onclick="battleAction('item')" ${hasHealItem?'':'disabled'}><span class="a-icon">🎒</span>ITEM${hasHealItem?'':' (empty)'}</button>
+      <button class="action-btn" onclick="battleAction('act')" style="border-color:#a78bfa;color:#a78bfa;"><span class="a-icon">💬</span>ACT</button>
+      <button class="action-btn" onclick="battleAction('spare')" ${battle.acted?'style="border-color:#4ade80;color:#4ade80;"':'disabled'} ><span class="a-icon">🕊️</span>SPARE${battle.acted?'':' (act first)'}</button>
+    </div>`;
+}
+
+function battleAction(action) {
+  if (!battle || !battle.active) return;
+  const e = battle.enemy;
+  let defending = false;
+
+  // Player turn
+  if (action === 'attack') {
+    const dmg = Math.max(1, player.atk + Math.floor(Math.random() * 4));
+    e.hp -= dmg;
+    battle.log.push({text: player.name + ' attacks for ' + dmg + ' damage!', cls:'log-player'});
+  } else if (action === 'magic') {
+    if (player.mp < 5) return;
+    player.mp -= 5;
+    const dmg = Math.max(1, player.mag * 2 + Math.floor(Math.random() * 6));
+    e.hp -= dmg;
+    battle.log.push({text: '✨ Magic blast hits for ' + dmg + ' damage!', cls:'log-player'});
+    updateHeader();
+  } else if (action === 'defend') {
+    defending = true;
+    battle.log.push({text: player.name + ' takes a defensive stance!', cls:'log-good'});
+  } else if (action === 'act') {
+    const actLines = {
+      'Slime': 'The Slime wobbles nervously. It just wants to bounce around the forest!',
+      'Lizard': 'The Lizard flicks its tongue. It looks more scared than angry.',
+      'Forest Skeleton': 'The Forest Skeleton rattles its bones. It seems lost and confused.',
+      'Rose': 'The Rose sways gently. It bloomed here and never meant any harm.',
+      'Tree Imp': 'The Tree Imp hides behind a leaf. It was just playing a prank!',
+      'Flower Petal': 'The Flower Petal drifts softly. It only attacks when startled.',
+      'Forest Wizard': 'The Forest Wizard mutters spells nervously. Deep down he just loves his forest.',
+      'Skeleton': 'The Skeleton clacks its jaw. It seems to have forgotten why it\'s even fighting.',
+      'Cloud': 'The Cloud puffs up sadly. It drifted here by accident on the wind.',
+      'Sky Knight': 'The Sky Knight hesitates. Maybe this battle isn\'t worth fighting after all.',
+      'Mountain Lion': 'The Mountain Lion growls softly. It is only protecting its territory.',
+      'Mountain Wizard': 'The Mountain Wizard lowers his staff. He looks tired of battling adventurers.',
+      'Flame': 'The Flame flickers anxiously. It burns because it doesn\'t know how to stop.',
+      'Obsidian Golem': 'The Obsidian Golem pauses. Deep inside the rock, something stirs with doubt.',
+      'Flame Dragon': 'The Flame Dragon snorts smoke. It roars, but its eyes look lonely.',
+      'Fire Knight': 'The Fire Knight stands down for a moment. Honor matters more than victory.',
+      'Flare Wizard': 'The Flare Wizard sweats. Maybe torching adventurers wasn\'t a great career choice.',
+      'Ice Slime': 'The Ice Slime shivers. It is very cold and just wants a warm hug.',
+      'Frozen Skeleton': 'The Frozen Skeleton chatters its teeth. It has been frozen for a very long time.',
+      'Igloo': 'The Igloo creaks. It didn\'t ask to come alive and is very confused.',
+      'Ice Golem': 'The Ice Golem pauses mid-swing. A single tear freezes on its cheek.',
+      'Ice Dragon': 'The Ice Dragon roars, then stops. Something about you reminds it of a friend.',
+      'Frost Wizard': 'The Frost Wizard stares you down. For just a moment his icy glare softens... then hardens again.',
+    };
+    const msg = actLines[e.name] || e.name + ' looks uncertain about this fight.';
+    battle.acted = true;
+    battle.log.push({text: '💬 ' + msg, cls:'log-good'});
+    battle.log.push({text: '🌀 ' + e.name + ' is touched and misses their turn!', cls:'log-good'});
+    renderBattle();
+    return;
+  } else if (action === 'spare') {
+    if (!battle.acted) return;
+    if (e.isBoss) {
+      battle.log.push({text: e.name + ' is ENRAGED by your mercy! One-hit KO!', cls:'log-enemy'});
+      player.hp = 0;
+      updateHeader();
+      battle.active = false;
+      onPlayerDefeated();
+      return;
+    }
+    battle.active = false;
+    showMsg('Spared! 🕊️', e.name + ' was spared and fled the battle! No XP or gold earned, but your heart is kind.', [
+      {label:'⚔️ FIGHT A ENEMY', fn:()=>{ closeMsg(); startBattle(e.regionIdx, false); }},
+      {label:'👑 FIGHT BOSS NOW', fn:()=>{ closeMsg(); startBattle(e.regionIdx, true); }},
+      {label:'🗺️ World Map', fn:()=>{ closeMsg(); showView('world'); }}
+    ]);
+    return;
+  } else if (action === 'item') {
+    const healItems = player.inventory.filter(i => i.type === 'heal' && i.qty > 0);
+    if (healItems.length === 0) return;
+    const item = healItems[0];
+    const before = player.hp;
+    player.hp = Math.min(player.maxHp, player.hp + item.val);
+    const gained = player.hp - before;
+    item.qty--;
+    if (item.qty <= 0) player.inventory = player.inventory.filter(i => i.id !== item.id);
+    battle.log.push({text: '🧪 Used ' + item.name + ', recovered ' + gained + ' HP!', cls:'log-good'});
+    battle.log.push({text: '😵 ' + e.name + ' is confused and misses their turn!', cls:'log-good'});
+    updateHeader();
+    renderBattle();
+    return;
+  }
+
+  // Check enemy defeat
+  if (e.hp <= 0) {
+    e.hp = 0;
+    battle.active = false;
+    onEnemyDefeated();
+    return;
+  }
+
+  // Enemy turn
+  setTimeout(() => {
+    if (!battle || !battle.active) return;
+    const rawDmg = Math.max(1, e.atk - Math.floor(player.def / 2) + Math.floor(Math.random() * 4));
+    const dmg = defending ? Math.max(1, Math.floor(rawDmg * 0.4)) : rawDmg;
+    player.hp -= dmg;
+    if (player.hp < 0) player.hp = 0;
+    battle.log.push({text: e.name + ' attacks for ' + dmg + ' damage!', cls:'log-enemy'});
+    updateHeader();
+
+    if (player.hp <= 0) {
+      battle.active = false;
+      onPlayerDefeated();
+      return;
+    }
+    renderBattle();
+  }, 300);
+
+  renderBattle();
+}
+
+function onEnemyDefeated() {
+  const e = battle.enemy;
+  const goldGain = e.gold[0] + Math.floor(Math.random() * (e.gold[1] - e.gold[0]));
+  player.gold += goldGain;
+  player.xp += e.xp;
+
+  const r = regions[e.regionIdx];
+  if (e.isSecret) {
+    r.secretBossDefeated = true;
+  } else if (e.isBoss) {
+    r.bossDefeated = true;
+  } else {
+    // Count toward secret boss unlock
+    if (!player.killStreak[r.id]) player.killStreak[r.id] = 0;
+    player.killStreak[r.id]++;
+  }
+
+  // Unlock next region
+  unlockNextRegion(e.regionIdx);
+
+  // Level up check
+  let leveledUp = false;
+  let newLevel = player.level;
+  while (true) {
+    const next = LEVELS.find(l => l.lvl === player.level + 1);
+    if (!next) break;
+    if (player.xp >= next.xp) {
+      player.level++;
+      player.maxHp += 20;
+      player.hp = player.maxHp;
+      player.maxMp += 4;
+      player.mp = player.maxMp;
+      player.pwr += 2;
+      leveledUp = true;
+      newLevel = player.level;
+    } else break;
+  }
+
+  updateHeader();
+
+  let msg = e.isBoss
+    ? '👑 ' + e.name + ' defeated!\n\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!'
+    : e.name + ' defeated!\n\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!';
+
+  const buttons = [];
+  if (e.isBoss && r.bossDefeated) {
+    buttons.push({label:'Continue', fn:() => { closeMsg(); showView('world'); }});
+  } else {
+    buttons.push({label:'Fight Again', fn:() => { closeMsg(); startBattle(e.regionIdx, false); }});
+    buttons.push({label:'World Map', fn:() => { closeMsg(); showView('world'); }});
+  }
+
+  if (leveledUp) {
+    showMsg('LEVEL UP! 🌟', '⬆️ Level ' + newLevel + '!\nHP and MP restored!\n\n' + msg, buttons);
+  } else {
+    if (e.isSecret) {
+      const finalMsg = e.isFinal ? '\n\nYou have truly conquered the Realm of Regions!' : '';
+      showMsg('🌀 SECRET BOSS DEFEATED!', e.name + ' vanquished!\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!' + finalMsg, [
+        {label:'Continue', fn:()=>{ closeMsg(); showView('world'); }}
+      ]);
+      return;
+    }
+    const isFinalBoss = e.isBoss && e.isFinal;
+    if (isFinalBoss) {
+      showMsg('🏆 YOU WIN!', 'The Frost Wizard is defeated!\n' + player.name + ' has conquered the Realm of Regions!', [{label:'Celebrate!', fn:()=>{ closeMsg(); showView('world'); }}]);
+    } else {
+      showMsg(e.isBoss ? 'Boss Defeated! 👑' : 'Victory! ⚔️', msg, buttons);
+    }
+  }
+}
+
+function onPlayerDefeated() {
+  updateHeader();
+  player.killStreak[battle.enemy.regionIdx !== undefined ? regions[battle.enemy.regionIdx].id : ''] = 0;
+  showMsg('💀 Defeated...', player.name + ' has fallen in battle!', [
+    {label:'To World Map', fn:() => { closeMsg(); player.hp = player.maxHp; updateHeader(); showView('world'); }}
+  ]);
+}
+
+function unlockNextRegion(regionIdx) {
+  const r = regions[regionIdx];
+  if (!r.bossDefeated) return;
+  const nextMap = {forest:'mountain', mountain:'lava', lava:'snow'};
+  const nextId = nextMap[r.id];
+  if (nextId && !player.regionsUnlocked.includes(nextId)) {
+    player.regionsUnlocked.push(nextId);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  MSG OVERLAY
+// ══════════════════════════════════════════════
+
+function showMsg(title, body, buttons) {
+  document.getElementById('msg-title').textContent = title;
+  document.getElementById('msg-body').textContent = body;
+  const btnDiv = document.getElementById('msg-buttons');
+  btnDiv.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-gold';
+    btn.textContent = b.label;
+    btn.onclick = b.fn;
+    btnDiv.appendChild(btn);
+  });
+  document.getElementById('msg-overlay').classList.add('show');
+}
+
+function closeMsg() {
+  document.getElementById('msg-overlay').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+
+// Check for saved game on load
+window.addEventListener('load', () => {
+  const hasSave = loadGame();
+  if (hasSave) {
+    const inp = document.getElementById('player-name-input');
+    if (inp) inp.value = player.name;
+  }
+  // allow Enter key to start
+  document.getElementById('player-name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startGame();
+  });
+});
+</script>
+</body>
+</html>
