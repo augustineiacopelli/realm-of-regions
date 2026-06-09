@@ -398,6 +398,52 @@
 
 <script>
 // ══════════════════════════════════════════════
+//  SOUND ENGINE (Web Audio API)
+// ══════════════════════════════════════════════
+
+const SFX = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+  function play(type, opts = {}) {
+    try {
+      const c = getCtx();
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type = opts.wave || 'square';
+      o.frequency.setValueAtTime(opts.freq || 440, c.currentTime);
+      if (opts.freq2) o.frequency.linearRampToValueAtTime(opts.freq2, c.currentTime + (opts.dur || 0.15));
+      g.gain.setValueAtTime(opts.vol || 0.15, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + (opts.dur || 0.15));
+      o.start(c.currentTime);
+      o.stop(c.currentTime + (opts.dur || 0.15));
+    } catch(e) {}
+  }
+  function seq(notes) {
+    let t = 0;
+    notes.forEach(n => {
+      setTimeout(() => play('tone', n), t);
+      t += (n.gap || n.dur * 1000 || 150);
+    });
+  }
+  return {
+    attack:  () => play('tone', {freq:220, freq2:440, dur:0.12, wave:'sawtooth', vol:0.18}),
+    magic:   () => seq([{freq:600,dur:0.08,wave:'sine',vol:0.12},{freq:800,dur:0.08,wave:'sine',vol:0.12,gap:80},{freq:1000,dur:0.1,wave:'sine',vol:0.12,gap:80}]),
+    defend:  () => play('tone', {freq:180, freq2:160, dur:0.18, wave:'square', vol:0.12}),
+    item:    () => seq([{freq:500,dur:0.07,wave:'sine',vol:0.12},{freq:700,dur:0.1,wave:'sine',vol:0.14,gap:70}]),
+    hit:     () => play('tone', {freq:120, freq2:80, dur:0.15, wave:'sawtooth', vol:0.2}),
+    victory: () => seq([{freq:523,dur:0.1,wave:'square',vol:0.15,gap:110},{freq:659,dur:0.1,wave:'square',vol:0.15,gap:110},{freq:784,dur:0.15,wave:'square',vol:0.15,gap:150},{freq:1047,dur:0.25,wave:'square',vol:0.18,gap:250}]),
+    levelup: () => seq([{freq:392,dur:0.08,wave:'square',vol:0.15,gap:90},{freq:523,dur:0.08,wave:'square',vol:0.15,gap:90},{freq:659,dur:0.08,wave:'square',vol:0.15,gap:90},{freq:784,dur:0.08,wave:'square',vol:0.15,gap:90},{freq:1047,dur:0.2,wave:'square',vol:0.18,gap:200}]),
+    defeat:  () => seq([{freq:300,dur:0.15,wave:'sawtooth',vol:0.15,gap:160},{freq:250,dur:0.15,wave:'sawtooth',vol:0.15,gap:160},{freq:200,dur:0.25,wave:'sawtooth',vol:0.15,gap:250}]),
+    spare:   () => seq([{freq:440,dur:0.08,wave:'sine',vol:0.12,gap:90},{freq:550,dur:0.12,wave:'sine',vol:0.14,gap:120}]),
+    boss:    () => seq([{freq:150,dur:0.2,wave:'sawtooth',vol:0.2,gap:220},{freq:120,dur:0.2,wave:'sawtooth',vol:0.2,gap:220},{freq:100,dur:0.3,wave:'sawtooth',vol:0.22,gap:300}]),
+  };
+})();
+
+// ══════════════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════════════
 
@@ -423,6 +469,12 @@ const SHOP_ITEMS = [
   {id:'chestplate',  name:'Chest Plate',    icon:'🛡️', cost:120, desc:'+5 Defense',         type:'stat', stat:'def', val:5},
   {id:'hotdog',      name:'Hotdog',         icon:'🌭', cost:200, desc:'Recover 45 HP',     type:'heal', val:45},
   {id:'cheddar',     name:'Cheddar',        icon:'🧀', cost:150, desc:'Recover 20 HP',     type:'heal', val:20},
+  {id:'iron_sword',  name:'Iron Sword',     icon:'🗡️', cost:70,  desc:'+5 Attack',          type:'stat', stat:'atk', val:5},
+  {id:'magic_tome1', name:'Magic Tome 1',   icon:'📘', cost:150, desc:'+4 Magic',           type:'stat', stat:'mag', val:4},
+  {id:'magic_tome2', name:'Magic Tome 2',   icon:'📗', cost:250, desc:'+7 Magic',           type:'stat', stat:'mag', val:7},
+  {id:'magic_tome3', name:'Magic Tome 3',   icon:'📕', cost:390, desc:'+13 Magic',          type:'stat', stat:'mag', val:13},
+  {id:'dragon_plate',name:'Dragon Plate',   icon:'🐉', cost:40,  desc:'+10 Defense',        type:'stat', stat:'def', val:10},
+  {id:'dum_dum',     name:'Dum Dum',        icon:'🍭', cost:60,  desc:'Recover 50 HP',      type:'heal', val:50},
 ];
 
 const REGIONS = [
@@ -490,7 +542,7 @@ let player = {
   hp: 30, maxHp: 30,
   mp: 20, maxMp: 20,
   atk: 5, mag: 5, pwr: 5, def: 5,
-  gold: 50,
+  gold: 10,
   inventory: [{id:'potion', name:'Potion', icon:'🧪', qty:3, type:'heal', val:10}], // {id, name, icon, qty, type, val, stat}
   regionsUnlocked: ['forest'],
   killStreak: {}, // regionId -> count of enemies defeated without dying
@@ -589,18 +641,10 @@ function showView(view) {
 // ──── WORLD ────
 function renderWorld(area) {
   const allBeaten = regions.every(r => r.bossDefeated);
-  if (allBeaten) {
-    area.innerHTML = `
-      <div class="area-title">🏆 VICTORY!</div>
-      <div style="text-align:center;padding:20px;">
-        <div style="font-size:48px;margin-bottom:12px;">👑</div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);line-height:1.8;">
-          ${player.name} has conquered<br>all four regions!<br><br>The Frost Wizard<br>is defeated!
-        </p>
-      </div>`;
-    return;
-  }
-  area.innerHTML = `<div class="area-title">🗺️ WHERE TO GO?</div>
+  const banner = allBeaten ? '<div style="background:linear-gradient(135deg,#2a1a00,#5a3a00);border:2px solid var(--gold);border-radius:10px;padding:12px;text-align:center;margin-bottom:12px;color:var(--gold);font-size:11px;font-weight:700;">🏆 GAME COMPLETE! Keep exploring - but the Frost and Void Wizards rest in peace.</div>' : '';
+  area.innerHTML = `
+    ${banner}
+    <div class="area-title">🗺️ WHERE TO GO?</div>
     <div style="margin-bottom:12px;">
       <div class="region-grid" id="region-grid"></div>
     </div>
@@ -623,9 +667,21 @@ function renderWorld(area) {
   });
 }
 
+// ──── BOSS BUTTON HELPER ────
+function getBossBtn(r, idx) {
+  if (r.id === 'snow' && r.bossDefeated) {
+    return '<div style="padding:14px;border-radius:10px;border:2px solid #444;background:#1a1025;font-size:11px;color:#555;text-align:center;">👑 Frost Wizard - Defeated and At Rest</div>';
+  }
+  const label = r.bossDefeated ? 'Rematch Boss' : 'Challenge Boss';
+  return '<button class="btn btn-full" style="background:linear-gradient(135deg,#7a2200,#c0390b);color:white;padding:14px;border:2px solid #ff6b2b;border-radius:10px;font-size:9px;cursor:pointer;" onclick="startBattle(' + idx + ', true)">👑 ' + label + '</button>';
+}
+
 // ──── SECRET BOSS BUTTON HELPER ────
 function buildSecretBossBtn(idx) {
   const r = regions[idx];
+  if (r.id === 'snow' && r.secretBossDefeated) {
+    return '<div style="padding:14px;border-radius:10px;border:2px solid #333;background:#1a1025;font-family:monospace;font-size:8px;color:#555;text-align:center;">🌀 Void Wizard - Defeated & At Rest</div>';
+  }
   const streak = player.killStreak[r.id] || 0;
   const unlocked = streak >= 3;
   const label = r.secretBossDefeated ? '🔁 Rematch Secret Boss' : (unlocked ? '⚠️ Challenge Secret Boss' : '🔒 Secret Boss (' + streak + '/3 kills)');
@@ -649,10 +705,7 @@ function showRegion(idx) {
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <button class="btn btn-gold btn-full" onclick="startBattle(${idx}, false)">⚔️ Fight Enemy</button>
-      <button class="btn btn-full" style="background:linear-gradient(135deg,#7a2200,#c0390b);color:white;padding:14px;border:2px solid #ff6b2b;border-radius:10px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;"
-        onclick="startBattle(${idx}, true)">
-        👑 ${r.bossDefeated ? '🔁 Rematch Boss' : 'Challenge Boss'}
-      </button>
+      ${getBossBtn(r, idx)}
       ${buildSecretBossBtn(idx)}
     </div>`;
 }
@@ -773,7 +826,7 @@ function startSecretBoss(regionIdx) {
   enemy.isSecret = true;
   enemy.maxHp = enemy.hp;
   enemy.regionIdx = regionIdx;
-  battle = { enemy, log: [], turn: 'player', active: true, acted: false };
+  battle = { enemy, log: [], turn: 'player', active: true, acted: false, defendCount: 0 };
   renderBattle();
 }
 
@@ -815,19 +868,69 @@ function renderBattle() {
         <div class="bar-track"><div class="bar-fill" style="width:${hpPct}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
       </div>
     </div>
-    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;">
-      <div class="bar-label" style="margin-bottom:4px;"><span>❤️ ${player.name}</span><span style="font-weight:700;color:${player.hp <= player.maxHp * 0.25 ? '#e74c3c' : 'var(--text)'};">${player.hp} / ${player.maxHp} HP</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,player.hp/player.maxHp*100)}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div>
+        <div class="bar-label" style="margin-bottom:4px;"><span>❤️ ${player.name}</span><span style="font-weight:700;color:${player.hp <= player.maxHp * 0.25 ? '#e74c3c' : 'var(--text)'};">${player.hp} / ${player.maxHp} HP</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,player.hp/player.maxHp*100)}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+      </div>
+      <div>
+        <div class="bar-label" style="margin-bottom:4px;"><span>💙 MP</span><span style="font-weight:700;color:var(--text);">${player.mp} / ${player.maxMp} MP</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,player.mp/player.maxMp*100)}%;background:linear-gradient(90deg,#1a5799,#3498db);"></div></div>
+      </div>
     </div>
     <div class="battle-log">${logHtml || '<span style="color:var(--text-dim)">A wild ' + e.name + ' appears!</span>'}</div>
     <div class="action-grid">
       <button class="action-btn" onclick="battleAction('attack')"><span class="a-icon">⚔️</span>ATTACK</button>
       <button class="action-btn" onclick="battleAction('magic')" ${canMagic?'':'disabled'}><span class="a-icon">✨</span>MAGIC${canMagic?'':' (no MP)'}</button>
-      <button class="action-btn" onclick="battleAction('defend')"><span class="a-icon">🛡️</span>DEFEND</button>
+      <button class="action-btn" onclick="battleAction('defend')" ${battle.defendCount >= 10 ? 'disabled' : ''}><span class="a-icon">🛡️</span>DEFEND${battle.defendCount >= 10 ? ' (used up)' : ' (' + (10 - battle.defendCount) + ' left)'}</button>
       <button class="action-btn" onclick="battleAction('item')" ${hasHealItem?'':'disabled'}><span class="a-icon">🎒</span>ITEM${hasHealItem?'':' (empty)'}</button>
       <button class="action-btn" onclick="battleAction('act')" style="border-color:#a78bfa;color:#a78bfa;"><span class="a-icon">💬</span>ACT</button>
       <button class="action-btn" onclick="battleAction('spare')" ${battle.acted?'style="border-color:#4ade80;color:#4ade80;"':'disabled'} ><span class="a-icon">🕊️</span>SPARE${battle.acted?'':' (act first)'}</button>
     </div>`;
+}
+
+function showItemPicker(items) {
+  const area = document.getElementById('main-area');
+  const e = battle.enemy;
+  const hpPct = Math.max(0, e.hp / e.maxHp * 100);
+  let html = `
+    <div class="enemy-display">
+      <span class="enemy-sprite">${e.icon}</span>
+      <div class="enemy-name">${e.name}${e.isBoss ? ' 👑' : ''}</div>
+      <div class="enemy-hp-bar">
+        <div class="bar-label"><span>HP</span><span>${e.hp}/${e.maxHp}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${hpPct}%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+      </div>
+    </div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);text-align:center;margin-bottom:12px;">🎒 CHOOSE AN ITEM</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">`;
+  items.forEach(item => {
+    html += `<div class="shop-item">
+      <div class="shop-item-info">
+        <div class="item-name">${item.icon} ${item.name} <span style="color:var(--text-dim);font-size:11px;">x${item.qty}</span></div>
+        <div class="item-desc">Recover ${item.val} HP</div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="useItemInBattle('${item.id}')">USE</button>
+    </div>`;
+  });
+  html += `</div><button class="btn btn-outline btn-full" onclick="renderBattle()">← Back</button>`;
+  area.innerHTML = html;
+}
+
+function useItemInBattle(id) {
+  const item = player.inventory.find(i => i.id === id);
+  if (!item || item.qty <= 0) return;
+  const e = battle.enemy;
+  const before = player.hp;
+  player.hp = Math.min(player.maxHp, player.hp + item.val);
+  const gained = player.hp - before;
+  item.qty--;
+  if (item.qty <= 0) player.inventory = player.inventory.filter(i => i.id !== id);
+  battle.log.push({text: '🧪 Used ' + item.name + ', recovered ' + gained + ' HP!', cls:'log-good'});
+  battle.log.push({text: '😵 ' + e.name + ' is confused and misses their turn!', cls:'log-good'});
+  SFX.item();
+  updateHeader();
+  renderBattle();
 }
 
 function battleAction(action) {
@@ -837,10 +940,12 @@ function battleAction(action) {
 
   // Player turn
   if (action === 'attack') {
+    SFX.attack();
     const dmg = Math.max(1, player.atk + Math.floor(Math.random() * 4));
     e.hp -= dmg;
     battle.log.push({text: player.name + ' attacks for ' + dmg + ' damage!', cls:'log-player'});
   } else if (action === 'magic') {
+    SFX.magic();
     if (player.mp < 5) return;
     player.mp -= 5;
     const dmg = Math.max(1, player.mag * 2 + Math.floor(Math.random() * 6));
@@ -848,8 +953,11 @@ function battleAction(action) {
     battle.log.push({text: '✨ Magic blast hits for ' + dmg + ' damage!', cls:'log-player'});
     updateHeader();
   } else if (action === 'defend') {
+    if (battle.defendCount >= 10) return;
+    SFX.defend();
     defending = true;
-    battle.log.push({text: player.name + ' takes a defensive stance!', cls:'log-good'});
+    battle.defendCount++;
+    battle.log.push({text: player.name + ' takes a defensive stance! (' + (10 - battle.defendCount) + ' defends left)', cls:'log-good'});
   } else if (action === 'act') {
     const actLines = {
       'Slime': 'The Slime wobbles nervously. It just wants to bounce around the forest!',
@@ -892,6 +1000,7 @@ function battleAction(action) {
       onPlayerDefeated();
       return;
     }
+    SFX.spare();
     battle.active = false;
     showMsg('Spared! 🕊️', e.name + ' was spared and fled the battle! No XP or gold earned, but your heart is kind.', [
       {label:'⚔️ FIGHT A ENEMY', fn:()=>{ closeMsg(); startBattle(e.regionIdx, false); }},
@@ -902,16 +1011,7 @@ function battleAction(action) {
   } else if (action === 'item') {
     const healItems = player.inventory.filter(i => i.type === 'heal' && i.qty > 0);
     if (healItems.length === 0) return;
-    const item = healItems[0];
-    const before = player.hp;
-    player.hp = Math.min(player.maxHp, player.hp + item.val);
-    const gained = player.hp - before;
-    item.qty--;
-    if (item.qty <= 0) player.inventory = player.inventory.filter(i => i.id !== item.id);
-    battle.log.push({text: '🧪 Used ' + item.name + ', recovered ' + gained + ' HP!', cls:'log-good'});
-    battle.log.push({text: '😵 ' + e.name + ' is confused and misses their turn!', cls:'log-good'});
-    updateHeader();
-    renderBattle();
+    showItemPicker(healItems);
     return;
   }
 
@@ -927,10 +1027,19 @@ function battleAction(action) {
   setTimeout(() => {
     if (!battle || !battle.active) return;
     const rawDmg = Math.max(1, e.atk - Math.floor(player.def / 2) + Math.floor(Math.random() * 4));
-    const dmg = defending ? Math.max(1, Math.floor(rawDmg * 0.4)) : rawDmg;
+    const dmg = defending ? 0 : rawDmg;
     player.hp -= dmg;
     if (player.hp < 0) player.hp = 0;
-    battle.log.push({text: e.name + ' attacks for ' + dmg + ' damage!', cls:'log-enemy'});
+    if (defending) {
+      battle.enemy.hp -= 10;
+      if (battle.enemy.hp < 0) battle.enemy.hp = 0;
+      battle.log.push({text: player.name + ' blocks perfectly! ' + e.name + ' takes 10 reflected damage!', cls:'log-good'});
+      updateHeader();
+      if (battle.enemy.hp <= 0) { battle.active = false; onEnemyDefeated(); return; }
+    } else {
+      SFX.hit();
+      battle.log.push({text: e.name + ' attacks for ' + dmg + ' damage!', cls:'log-enemy'});
+    }
     updateHeader();
 
     if (player.hp <= 0) {
@@ -943,6 +1052,17 @@ function battleAction(action) {
 
   renderBattle();
 }
+
+const BOSS_LAST_WORDS = {
+  'Forest Wizard':    'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Mountain Wizard':  'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Flare Wizard':     'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Frost Wizard':     'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Shadow Wizard':    'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Storm Wizard':     'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Inferno Wizard':   'NOOOOOOOO! HOW COULD YOU HAVE BEAT ME! BUT YOU CANNOT DEFEAT THE VOID WIZARD!',
+  'Void Wizard':      'NOOOOOOO! HOW COULD YOU HAVE BEAT ME!? I\u2019M THE STRONGEST WIZARD IN THE WORLD!',
+};
 
 function onEnemyDefeated() {
   const e = battle.enemy;
@@ -984,8 +1104,17 @@ function onEnemyDefeated() {
 
   updateHeader();
 
+  if (e.isBoss || e.isSecret) {
+    SFX.boss();
+  } else {
+    SFX.victory();
+  }
+
+  const lastWords = (e.isBoss || e.isSecret) ? (BOSS_LAST_WORDS[e.name] || '') : '';
+  const lastWordsLine = lastWords ? '\n\n"' + lastWords + '"' : '';
+
   let msg = e.isBoss
-    ? '👑 ' + e.name + ' defeated!\n\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!'
+    ? '👑 ' + e.name + ' defeated!' + lastWordsLine + '\n\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!'
     : e.name + ' defeated!\n\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!';
 
   const buttons = [];
@@ -997,11 +1126,11 @@ function onEnemyDefeated() {
   }
 
   if (leveledUp) {
-    showMsg('LEVEL UP! 🌟', '⬆️ Level ' + newLevel + '!\nHP and MP restored!\n\n' + msg, buttons);
+    SFX.levelup(); showMsg('LEVEL UP! 🌟', '⬆️ Level ' + newLevel + '!\nHP and MP restored!\n\n' + msg, buttons);
   } else {
     if (e.isSecret) {
       const finalMsg = e.isFinal ? '\n\nYou have truly conquered the Realm of Regions!' : '';
-      showMsg('🌀 SECRET BOSS DEFEATED!', e.name + ' vanquished!\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!' + finalMsg, [
+      showMsg('🌀 SECRET BOSS DEFEATED!', e.name + ' vanquished!' + lastWordsLine + '\nYou earned ' + e.xp + ' XP and ' + goldGain + 'g!' + finalMsg, [
         {label:'Continue', fn:()=>{ closeMsg(); showView('world'); }}
       ]);
       return;
@@ -1016,6 +1145,7 @@ function onEnemyDefeated() {
 }
 
 function onPlayerDefeated() {
+  SFX.defeat();
   updateHeader();
   player.killStreak[battle.enemy.regionIdx !== undefined ? regions[battle.enemy.regionIdx].id : ''] = 0;
   showMsg('💀 Defeated...', player.name + ' has fallen in battle!', [
